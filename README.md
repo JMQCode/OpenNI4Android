@@ -1,6 +1,6 @@
 OpenNI4Android
 ==============
- At this moment this template only contains binaries for Android X86. I will add ARM binaries soon.
+ __At this moment this template only contains binaries for Android X86. I will add ARM binaries soon.__
  
 Did you try to develop an Android app using OpenNI? If you answer is YES You know the pain you´ve encountered during the process.
 I found this [tutorial](http://www.hirotakaster.com/archives/2012/01/how-to-build-openni-android-application.php) which is great but
