@@ -15,6 +15,7 @@ class SimpleViewer  {
 	private OutArg<ScriptNode> scriptNode;
     private Context context;
     private DepthGenerator depthGen;
+    private ImageGenerator imageGen;
     private BitmapGenerator bitmapGenerator;
     
     private Bitmap bitmap;
@@ -28,11 +29,12 @@ class SimpleViewer  {
 
         try {
             scriptNode = new OutArg<ScriptNode>();
-            String xmlName = SimpleViewerActivity.getCurrentActivity().getFilesDir() +"/"+ SAMPLE_XML_FILE;
+            String xmlName = SimpleViewerRGBActivity.getCurrentActivity().getFilesDir() +"/"+ SAMPLE_XML_FILE;
             context = Context.createFromXmlFile(xmlName, scriptNode);
             depthGen = DepthGenerator.create(context);
+            imageGen = ImageGenerator.create(context);
             
-            bitmapGenerator = new BitmapGenerator(context, false, true);
+            bitmapGenerator = new BitmapGenerator(context, true, false, false, false);
             MapOutputMode mapOutputMode = bitmapGenerator.getMapOutputMode();
             width  = mapOutputMode.getXRes();
             height = mapOutputMode.getYRes();
@@ -69,7 +71,7 @@ class SimpleViewer  {
 
 	void updateDepth() throws StatusException {
 		context.waitAnyUpdateAll();
-		bitmapGenerator.generateBitmap();
+		bitmapGenerator.generateBitmap(false, true, false, false, true);
 	}
 
    

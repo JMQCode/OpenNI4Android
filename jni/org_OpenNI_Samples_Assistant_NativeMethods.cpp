@@ -107,23 +107,32 @@ void SetOutArgStringValue(JNIEnv* env, jobject p, const XnChar* value)
 }
 
 //---------------------------------------------------------------------------
-// SamplesAssistant
+// SamplesAssistant 
+// Modified by Felipe Herranz in order to get more functionality of BitMapGenerator of Samples Assistant java package
 //---------------------------------------------------------------------------
 Context *mContext = 0;
 
 DepthGenerator mDepthGen;
 UserGenerator mUserGen;
+ImageGenerator mImageGen;
+IRGenerator mIrGen;
+
 char hasDepthGen = 0;
 char hasUserGen = 0;
+char hasImageGen = 0;
+char hasIrGen = 0;
 
 DepthMetaData depthMD;
+ImageMetaData imageMD;
 SceneMetaData sceneMD;
+IRMetaData irMD;
 
 // local functions
+// At least I have to check initGraphics function REMEMBER IT!!!!!
 XnStatus initGraphics();
 void disposeGraphics();
-XnStatus generateBitmapLocal(char useScene, char useDepth, char useHistogram, int **localPtr);
-XnStatus generateBitmapRemote(char useScene, char useDepth, char useHistogram, int *remoteBuf, int buflen);
+XnStatus generateBitmapLocal(char useScene, char useDepth, char useImage, char useIr, char useHistogram, int **localPtr);
+XnStatus generateBitmapRemote(char useScene, char useDepth, char useImage, char useIr, char useHistogram, int *remoteBuf, int buflen);
 
 /*
  * Class:     org_OpenNI_Samples_Assistant_NativeMethods
@@ -132,25 +141,29 @@ XnStatus generateBitmapRemote(char useScene, char useDepth, char useHistogram, i
  */
 JNIEXPORT jint JNICALL 
 Java_org_OpenNI_Samples_Assistant_NativeMethods_initFromContext
-  (JNIEnv *env, jclass cls, jlong pContext, jboolean _hasUserGen, jboolean _hasDepthGen)
+  (JNIEnv *env, jclass cls, jlong pContext, jboolean _hasUserGen, jboolean _hasDepthGen, jboolean _hasImageGen, jboolean _hasIrGen)
 {
 	LOGD("init_start");
 	hasUserGen =  _hasUserGen;
 	hasDepthGen = _hasDepthGen;
+	hasImageGen = _hasImageGen;
+	hasIrGen = _hasIrGen;
 
 	mContext = new Context((XnContext*) pContext);
 	
-	if (!(hasUserGen || hasDepthGen))
+	if (!(hasUserGen || hasDepthGen || hasImageGen || hasIrGen))
+	{
+		LOGD(" All booleans are false");
 		return XN_STATUS_BAD_PARAM;
-	
+	}
 	int rc;
 	if (hasUserGen)
 	{
 		rc = mContext->FindExistingNode(XN_NODE_TYPE_USER, mUserGen);
 		if (rc != XN_STATUS_OK)
 		{
-//TODO log&retval
-			printf("No user node exists!");
+			//TODO log&retval
+			LOGD("No user node exists!");
 			return 1;
 		}
 
@@ -162,12 +175,34 @@ Java_org_OpenNI_Samples_Assistant_NativeMethods_initFromContext
 		rc = mContext->FindExistingNode(XN_NODE_TYPE_DEPTH, mDepthGen);
 		if (rc != XN_STATUS_OK)
 		{
-//TODO log&retval
-			printf("No depth node exists! Check your XML.");
+			//TODO log&retval
+			LOGD("No depth node exists! Check your XML.");
 			return 1;
 		}
-
 		mDepthGen.GetMetaData(depthMD);
+	}
+
+	if(hasImageGen)
+	{
+		rc = mContext->FindExistingNode(XN_NODE_TYPE_IMAGE,mImageGen);
+		if(rc != XN_STATUS_OK)
+		{
+			LOGD("No image node exists! Check your XML.");
+			return 1;
+		}
+		mImageGen.GetMetaData(imageMD);
+	}
+
+	if(hasIrGen)
+	{
+		rc = mContext->FindExistingNode(XN_NODE_TYPE_IR,mIrGen);
+		if(rc != XN_STATUS_OK)
+		{
+			LOGD("No IR node exists! Check your XML");
+			return 1;
+		}
+		LOGD("Ir Node created");
+		mIrGen.GetMetaData(irMD);
 	}
 
 	initGraphics();
@@ -192,6 +227,10 @@ mUserGen.Release();
 hasUserGen = 0;
 mDepthGen.Release();
 hasDepthGen = 0;
+mImageGen.Release();
+hasUserGen = 0;
+mIrGen.Release();
+hasIrGen = 0;
 
 mContext->Release();
 delete mContext;
@@ -215,9 +254,22 @@ Java_org_OpenNI_Samples_Assistant_NativeMethods_getMapOutputMode
 	XnNodeHandle hNode = 0;
 	
 	if(mDepthGen)
+	{
+		LOGD("Node Depth Handle");
 		hNode = (XnNodeHandle)mDepthGen;
-	else
+	}else if(mUserGen)
+	{
+		LOGD("Node User Handle");
 		hNode = (XnNodeHandle)mUserGen;
+	}else if(mImageGen)
+	{
+		LOGD("Node Image Handle");
+		hNode = (XnNodeHandle)mImageGen;
+	}else if(mIrGen)
+	{
+		LOGD("Node IR Handle");
+		hNode = (XnNodeHandle)mIrGen;
+	}
 
 	XnStatus nRetVal = xnGetMapOutputMode((XnNodeHandle)hNode, &mode);
 	XN_IS_STATUS_OK(nRetVal);
@@ -235,11 +287,10 @@ Java_org_OpenNI_Samples_Assistant_NativeMethods_getMapOutputMode
  * Signature: (ZZZLorg/OpenNI/OutArg;)I
  */
 JNIEXPORT jint JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_generateBitmapLocalBuffer
-  (JNIEnv *env, jclass cls, jboolean useScene, jboolean useDepth, jboolean useHistogram, jobject outPtr)
+  (JNIEnv *env, jclass cls, jboolean useScene, jboolean useDepth, jboolean useImage, jboolean useIr, jboolean useHistogram, jobject outPtr)
 {
 	int *bitmap = 0;
-	
-	XnStatus nRetVal = generateBitmapLocal(hasUserGen && useScene, hasDepthGen && useDepth, useHistogram, &bitmap);
+	XnStatus nRetVal = generateBitmapLocal(hasUserGen && useScene, hasDepthGen && useDepth, hasImageGen && useImage, hasIrGen && useIr, useHistogram, &bitmap);
 	SetOutArgPointerValue(env, outPtr, bitmap);
 
 	XN_IS_STATUS_OK(nRetVal);
@@ -255,7 +306,7 @@ JNIEXPORT jint JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_generateB
  */
 JNIEXPORT jint JNICALL 
 Java_org_OpenNI_Samples_Assistant_NativeMethods_generateBitmapJavaBuffer
-  (JNIEnv *env, jclass cls, jboolean useScene, jboolean useDepth, jboolean useHistogram, jintArray array)
+  (JNIEnv *env, jclass cls, jboolean useScene, jboolean useDepth, jboolean useImage, jboolean useIr, jboolean useHistogram, jintArray array)
 {
 	jboolean isCopy;
 
@@ -267,7 +318,7 @@ Java_org_OpenNI_Samples_Assistant_NativeMethods_generateBitmapJavaBuffer
 	// PAY ATTENTION TO BUFFER OVERFLOW, DO NOT WRITE BEYOND BUFFER LENGTH
 
 	if(isCopy) LOGD("isCopy!");
-	XnStatus nRetVal = generateBitmapRemote(hasUserGen && useScene, hasDepthGen && useDepth, useHistogram, buffer, length);
+	XnStatus nRetVal = generateBitmapRemote(hasUserGen && useScene, hasDepthGen && useDepth, hasImageGen && useImage, hasIrGen && useIr, useHistogram, buffer, length);
 
 	// here it is important to use 0 so that JNI takes care of copying
 	// the data back to the Java side in case GetByteArrayElements returned a copy
@@ -313,6 +364,7 @@ JNIEXPORT jint JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_readLocal
 //---------------------------------------------------------------------------
 
 size_t MAX_DEPTH = 10000;
+//size_t MAX_DEPTH = 4000;
 size_t HISTSIZE = MAX_DEPTH * sizeof(float);
 
 float *pHistogram = 0;
@@ -335,12 +387,13 @@ void disposeGraphics()
 	free(pHistogram);
 }
 
-const XnDepthPixel* 	pDepth;
-const XnLabel*		pLabels;
+const XnDepthPixel* 	      pDepth;
+const XnLabel*			      pLabels;
+const XnIRPixel* 			  pIR;
+const XnRGB24Pixel*     pRGB;
 
 XnUInt16 nXRes;
 XnUInt16 nYRes;
-
 void calcHist()
 {
 	unsigned int nValue = 0;
@@ -380,6 +433,12 @@ void calcHist()
 	}
 }
 
+float normalizeDepthOutput(unsigned int nValue)
+{
+	float output = 255.0 *((nValue - 800)/(4000 - 800));
+	return output;
+}
+
 XnFloat Colors[][3] =
 {
 //	{R,G,B}
@@ -397,12 +456,16 @@ XnFloat Colors[][3] =
 };
 XnUInt32 nColors = 10;
 
-void fillBitmap(int *dstBuf, char useScene, char useDepth, char useHistogram, char drawBackground)
+void fillBitmap(int *dstBuf, char useScene, char useDepth, char useImage, char useIr, char useHistogram, char drawBackground)
 {
 	unsigned int nValue = 0;
 	float nHistValue = 0;
 	unsigned int nIndex = 0;
 	XnUInt32 nColorID;
+	// RGB pixels
+	XnUInt8 rpx;
+	XnUInt8 gpx;
+	XnUInt8 bpx;
 
 	unsigned char *pDestImage = (unsigned char *)dstBuf;
 	// Prepare the texture map
@@ -413,12 +476,20 @@ void fillBitmap(int *dstBuf, char useScene, char useDepth, char useHistogram, ch
 		pDestImage[2] = 0;   //R
 		pDestImage[3] = 255; //A
 
-		if (drawBackground || !useScene || (useScene && *pLabels != 0))
+		if (drawBackground || !useScene || (useScene && *pLabels != 0) || useImage || useIr) // Not sure about this.
 		{
+			
 			if(useDepth)
+			{
 				nValue = *pDepth;
+			}else if(useIr)
+			{
+				nValue = *pIR;
+			}
 			else
+			{
 				nValue = 4000;
+			}
 
 			if(useScene)
 			{
@@ -437,28 +508,69 @@ void fillBitmap(int *dstBuf, char useScene, char useDepth, char useHistogram, ch
 				if(useDepth)
 				{
 					if(useHistogram)
+					{
 						nHistValue = pHistogram[nValue];
+					}
 					else
+					{
 						nHistValue = nValue * 255.0 / 4000;
-				} else {
+						//nHistValue = normalizeDepthOutput(nValue);
+					}
+					pDestImage[2] = nHistValue * Colors[nColorID][0]; 
+					pDestImage[1] = nHistValue * Colors[nColorID][1];
+					pDestImage[0] = nHistValue * Colors[nColorID][2];
+				}else if(useImage)
+				{
+					if(useHistogram)
+					{
+						// Histogram for RGB not developed yet
+						nHistValue = pHistogram[nValue];
+					}
+					else
+					{
+						rpx = pRGB->nRed;
+						gpx = pRGB->nGreen;
+						bpx = pRGB->nBlue;
+					}
+					pDestImage[2] = rpx;
+					pDestImage[1] = gpx;
+					pDestImage[0] = bpx;
+				}else if(useIr)
+				{
+					if(useHistogram)
+					{
+						// Histogram for IR not developed yet
+						nHistValue = pHistogram[nValue];
+					}else
+					{
+						//LOGD("nValue %d",nValue);
+						//nHistValue = nValue * 255.0 / 65535;
+						nHistValue = nValue * 255.0 / 1022;
+					}
+					pDestImage[2] = nHistValue * Colors[nColorID][0]; 
+				        pDestImage[1] = nHistValue * Colors[nColorID][1];
+				        pDestImage[0] = nHistValue * Colors[nColorID][2];
+				}else {
 					nHistValue = 255;
 				}
 
-				pDestImage[2] = nHistValue * Colors[nColorID][0]; 
-				pDestImage[1] = nHistValue * Colors[nColorID][1];
-				pDestImage[0] = nHistValue * Colors[nColorID][2];
+				//pDestImage[2] = nHistValue * Colors[nColorID][0]; 
+				//pDestImage[1] = nHistValue * Colors[nColorID][1];
+				//pDestImage[0] = nHistValue * Colors[nColorID][2];
 			}
 		}
 
 		pDepth++;
 		pLabels++;
+		pRGB++;
+		pIR++;
 		pDestImage += 4;
 	}
 }
 
-XnStatus prepare(char useScene, char useDepth, char useHistogram)
+XnStatus prepare(char useScene, char useDepth, char useImage, char useIr, char useHistogram)
 {
-//TODO handle possible failures!
+//TODO handle possible failures! Gotcha!
 	if (useDepth)
 	{
 		mDepthGen.GetMetaData(depthMD);
@@ -483,24 +595,41 @@ XnStatus prepare(char useScene, char useDepth, char useHistogram)
 
 		pLabels = sceneMD.Data();
 	}
+	if (useImage)
+	{
+		mImageGen.GetMetaData(imageMD);
+		nXRes = imageMD.XRes();
+		nYRes = imageMD.YRes();
+
+		pRGB = imageMD.RGB24Data();
+		// HISTOGRAM?????
+	}
+	if (useIr)
+	{
+		mIrGen.GetMetaData(irMD);
+		nXRes = irMD.XRes();
+		nYRes = irMD.YRes();
+
+		pIR = irMD.Data();
+		// HISTOGRAM????
+	}
 }
 
-XnStatus generateBitmapLocal(char useScene, char useDepth, char useHistogram, int **localPtr)
+XnStatus generateBitmapLocal(char useScene, char useDepth, char useImage, char useIr,  char useHistogram, int **localPtr)
 {
 	*localPtr = 0;
-
-	XnStatus rc = prepare(useScene, useDepth, useHistogram);
+	XnStatus rc = prepare(useScene, useDepth, useImage, useIr, useHistogram);
 	//TODO handle errors
 
-	fillBitmap(frameBuffer, useScene, useDepth, useHistogram, 1);
+	fillBitmap(frameBuffer, useScene, useDepth, useImage, useIr, useHistogram, 1);
 
 	*localPtr = frameBuffer;
 	return XN_STATUS_OK;
 }
 
-XnStatus generateBitmapRemote(char useScene, char useDepth, char useHistogram, int *remoteBuf, int buflen)
+XnStatus generateBitmapRemote(char useScene, char useDepth, char useImage, char useIr, char useHistogram, int *remoteBuf, int buflen)
 {
-	XnStatus rc = prepare(useScene, useDepth, useHistogram);
+	XnStatus rc = prepare(useScene, useDepth, useImage, useIr, useHistogram);
 	//TODO handle errors
 
 	if (buflen < nXRes * nYRes)
@@ -508,7 +637,7 @@ XnStatus generateBitmapRemote(char useScene, char useDepth, char useHistogram, i
 		return XN_STATUS_INVALID_BUFFER_SIZE;
 	}
 
-	fillBitmap(remoteBuf, useScene, useDepth, useHistogram, 1);
+	fillBitmap(remoteBuf, useScene, useDepth, useImage, useIr, useHistogram, 1);
 
 	return XN_STATUS_OK;
 }

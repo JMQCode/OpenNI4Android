@@ -9,8 +9,9 @@ import org.OpenNI.WrapperUtils;
 
 public class BitmapGenerator {
 
-	public BitmapGenerator(Context context, boolean hasUserGen, boolean hasDepthGen) throws StatusException {
-		int status = NativeMethods.initFromContext(context.toNative(), hasUserGen, hasDepthGen);
+	public BitmapGenerator(Context context, boolean hasUserGen, boolean hasDepthGen, boolean hasImageGen,
+			boolean hasIrGen) throws StatusException {
+		int status = NativeMethods.initFromContext(context.toNative(), hasUserGen, hasDepthGen, hasImageGen, hasIrGen);
 		WrapperUtils.throwOnError(status);
 		
 		MapOutputMode mom = getMapOutputMode();
@@ -37,7 +38,8 @@ public class BitmapGenerator {
 	}
 	
 	
-	public long[] generateBitmap(boolean useScene, boolean useDepth, boolean useHistogram) throws StatusException
+	public long[] generateBitmap(boolean useScene, boolean useDepth, boolean useImage,
+			boolean useIr, boolean useHistogram) throws StatusException
 	{
 		MyMap curMap = tempMaps[writeIndex];
 //		MapOutputMode mom = getMapOutputMode();
@@ -47,7 +49,7 @@ public class BitmapGenerator {
 		
 		// Generate the Bitmap
 		OutArg<Long> outPtr = new OutArg<Long>();
-		int status = NativeMethods.generateBitmapLocalBuffer(useScene, useDepth, useHistogram, outPtr);
+		int status = NativeMethods.generateBitmapLocalBuffer(useScene, useDepth, useImage, useIr,useHistogram, outPtr);
 		WrapperUtils.throwOnError(status);
 		
 		long t1 = System.currentTimeMillis();
@@ -64,7 +66,7 @@ public class BitmapGenerator {
 		return new long[]{t1-t0, t2-t1};
 	}
 	
-	public long[] generateBitmapDirect(boolean useScene, boolean useDepth, boolean useHistogram) throws StatusException
+	public long[] generateBitmapDirect(boolean useScene, boolean useDepth, boolean useImage, boolean useIr, boolean useHistogram) throws StatusException
 	{
 		MyMap curMap = tempMaps[writeIndex];
 //		MapOutputMode mom = getMapOutputMode();
@@ -72,7 +74,7 @@ public class BitmapGenerator {
 		
 		long t0 = System.currentTimeMillis();
 		
-		int status = NativeMethods.generateBitmapJavaBuffer(useScene, useDepth, useHistogram, curMap.pixels);
+		int status = NativeMethods.generateBitmapJavaBuffer(useScene, useDepth, useImage, useIr, useHistogram, curMap.pixels);
 		WrapperUtils.throwOnError(status);
 		
 		swapMaps();
@@ -93,7 +95,7 @@ public class BitmapGenerator {
 	
 	public long[] generateBitmap() throws StatusException
 	{
-		return generateBitmap(true, true, true);
+		return generateBitmap(true, true, true, true, true);
 	}
 	
 	public int[] getLastBitmap()

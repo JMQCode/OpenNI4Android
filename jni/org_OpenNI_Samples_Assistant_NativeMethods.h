@@ -53,7 +53,7 @@ JNIEXPORT void JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_copyToBuf
  * Signature: (JZZ)I
  */
 JNIEXPORT jint JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_initFromContext
-  (JNIEnv *, jclass, jlong, jboolean, jboolean);
+  (JNIEnv *, jclass, jlong, jboolean, jboolean, jboolean, jboolean);
 
 /*
  * Class:     org_OpenNI_Samples_Assistant_NativeMethods
@@ -77,7 +77,7 @@ JNIEXPORT jint JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_getMapOut
  * Signature: (ZZZLorg/OpenNI/OutArg;)I
  */
 JNIEXPORT jint JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_generateBitmapLocalBuffer
-  (JNIEnv *, jclass, jboolean, jboolean, jboolean, jobject);
+  (JNIEnv *, jclass, jboolean, jboolean, jboolean, jboolean, jboolean, jobject);
 
 /*
  * Class:     org_OpenNI_Samples_Assistant_NativeMethods
@@ -85,7 +85,7 @@ JNIEXPORT jint JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_generateB
  * Signature: (ZZZ[I)I
  */
 JNIEXPORT jint JNICALL Java_org_OpenNI_Samples_Assistant_NativeMethods_generateBitmapJavaBuffer
-  (JNIEnv *, jclass, jboolean, jboolean, jboolean, jintArray);
+  (JNIEnv *, jclass, jboolean, jboolean, jboolean, jboolean, jboolean, jintArray);
 
 /*
  * Class:     org_OpenNI_Samples_Assistant_NativeMethods

@@ -28,7 +28,9 @@ class NativeMethods
 	static native int initFromContext(
 			long pContext, 
 			boolean hasUserGen, 
-			boolean hasDepthGen);
+			boolean hasDepthGen,
+			boolean hasImageGen,
+			boolean hasIrGen);
 	
 	static native int dispose();
 	
@@ -41,12 +43,16 @@ class NativeMethods
 	static native int generateBitmapLocalBuffer(
 			boolean useScene, 
 			boolean useDepth,
+			boolean useImage,
+			boolean useIr,
 			boolean useHistogram,
 			OutArg<Long> outPtr);
 	
 	static native int generateBitmapJavaBuffer(
 			boolean useScene, 
 			boolean useDepth,
+			boolean useImage,
+			boolean useIr,
 			boolean useHistogram,
 			int[] buffer);
 	
