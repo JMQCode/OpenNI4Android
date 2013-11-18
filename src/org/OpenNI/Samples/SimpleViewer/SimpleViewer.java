@@ -29,7 +29,7 @@ class SimpleViewer  {
 
         try {
             scriptNode = new OutArg<ScriptNode>();
-            String xmlName = SimpleViewerRGBActivity.getCurrentActivity().getFilesDir() +"/"+ SAMPLE_XML_FILE;
+            String xmlName = SimpleViewerActivity.getCurrentActivity().getFilesDir() +"/"+ SAMPLE_XML_FILE;
             context = Context.createFromXmlFile(xmlName, scriptNode);
             depthGen = DepthGenerator.create(context);
             imageGen = ImageGenerator.create(context);
