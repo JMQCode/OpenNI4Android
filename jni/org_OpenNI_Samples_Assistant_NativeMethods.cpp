@@ -14,6 +14,7 @@
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
 #include <stdio.h>
+#include "color_mapping.h"
 
 using namespace xn;
  
@@ -108,7 +109,7 @@ void SetOutArgStringValue(JNIEnv* env, jobject p, const XnChar* value)
 
 //---------------------------------------------------------------------------
 // SamplesAssistant 
-// Modified by Felipe Herranz in order to get more functionality of BitMapGenerator of Samples Assistant java package
+// Modified by Felipe Herranz(felhr85@gmail.com) in order to get more functionality of BitMapGenerator of Samples Assistant java package
 //---------------------------------------------------------------------------
 Context *mContext = 0;
 
@@ -433,11 +434,6 @@ void calcHist()
 	}
 }
 
-float normalizeDepthOutput(unsigned int nValue)
-{
-	float output = 255.0 *((nValue - 800)/(4000 - 800));
-	return output;
-}
 
 XnFloat Colors[][3] =
 {
@@ -513,8 +509,11 @@ void fillBitmap(int *dstBuf, char useScene, char useDepth, char useImage, char u
 					}
 					else
 					{
-						nHistValue = nValue * 255.0 / 4000;
-						//nHistValue = normalizeDepthOutput(nValue);
+						//nHistValue = nValue * 255.0 / 4000;
+						//nHistValue = normalized_mapping(&nValue);
+						//nHistValue = two_section_mapping(&nValue,1500,5);
+						//nHistValue = log_mapping_base10(&nValue);
+						nHistValue = simple_mapping(&nValue);
 					}
 					pDestImage[2] = nHistValue * Colors[nColorID][0]; 
 					pDestImage[1] = nHistValue * Colors[nColorID][1];
